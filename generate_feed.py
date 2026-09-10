@@ -4,11 +4,11 @@ import re
 from playwright.sync_api import sync_playwright
 
 LIST_URL = "https://arhiiv.err.ee/audio/seeria/rahva-oma-kaitse?limit=500&sort=old"
-MONTHS = {"jaanuar":1,"veebruar":2,"märts":3,"aprill":4,"mai":5,"juuni":6,"juuli":7,"august":8,"september":9,"oktoober":10,"november":11,"detsember":12}
+API = "https://arhiiv.err.ee/api/v1/series/audio/rahva-oma-kaitse"
 
 def year_of(v):
     if isinstance(v, int): return v
-    m = re.search(r"\b(19|20)\d{2}\b", str(v))
+    m = re.search(r"\b(?:19|20)\d{2}\b", str(v))
     return int(m.group(0)) if m else None
 
 def media_strings(obj, path=""):
@@ -26,18 +26,31 @@ def media_strings(obj, path=""):
 with sync_playwright() as p:
     browser=p.chromium.launch(headless=True)
     page=browser.new_page()
-    series_data={}
-    def list_resp(resp):
-        if "/api/v1/series/audio/rahva-oma-kaitse" in resp.url:
-            try: series_data.update(resp.json())
-            except: pass
-    page.on("response", list_resp)
     page.goto(LIST_URL, wait_until="domcontentloaded", timeout=60000)
-    page.wait_for_timeout(5000)
-    entries=(series_data.get("activeList") or {}).get("data") or []
-    old=[e for e in entries if year_of(e.get("date")) in range(2005,2010)]
-    print("MATCHING_COUNT_IN_FIRST_500",len(old))
-    if not old: raise SystemExit("No 2005-2009 entries found")
+    page.wait_for_timeout(3000)
+
+    all_entries=[]
+    for n in range(1,8):
+        result = page.evaluate("""async ({api,n}) => {
+          const body = new URLSearchParams({limit:'500', page:String(n), sort:'old', all:'false'});
+          const r = await fetch(api, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'}, body});
+          return {status:r.status, text:await r.text()};
+        }""", {"api":API,"n":n})
+        print("PAGE_STATUS",n,result["status"])
+        if result["status"] != 200: break
+        data=json.loads(result["text"])
+        al=data.get("activeList") or {}
+        entries=al.get("data") or []
+        if not entries: break
+        years=[year_of(e.get("date")) for e in entries]
+        years=[y for y in years if y]
+        print("PAGE_RANGE",n,len(entries),min(years) if years else None,max(years) if years else None,"TOTAL",al.get("totalCount"))
+        all_entries.extend(entries)
+        if len(entries)<500: break
+
+    old=[e for e in all_entries if year_of(e.get("date")) in range(2005,2010)]
+    print("MATCHING_COUNT",len(old))
+    if not old: raise SystemExit("No 2005-2009 entries found after pagination")
     e=old[0]
     print("TEST_ENTRY",json.dumps({k:e.get(k) for k in ["date","fileId","heading","url","seriesId"]},ensure_ascii=False))
     ep_url="https://arhiiv.err.ee/audio/vaata/"+e["url"]
@@ -49,25 +62,25 @@ with sync_playwright() as p:
         u=resp.url
         ct=(resp.headers.get("content-type") or "").lower()
         if "/api/" in u or "json" in ct:
-            try:
-                data=resp.json()
+            try: data=resp.json()
             except: return
             ms=media_strings(data)
             if ms or "arhiiv.err.ee/api" in u:
                 captured.append((u, list(data.keys())[:30] if isinstance(data,dict) else ["list"], ms))
     ep.on("response",ep_resp)
     ep.goto(ep_url,wait_until="domcontentloaded",timeout=60000)
-    ep.wait_for_timeout(8000)
+    ep.wait_for_timeout(7000)
     print("CAPTURED_RESPONSES",len(captured))
-    for u,keys,ms in captured[:30]:
+    for u,keys,ms in captured[:40]:
         print("API",u)
         print("KEYS",keys)
-        for path,s in ms[:20]: print("MEDIA",path,s)
+        for path,s in ms[:30]: print("MEDIA",path,s)
     content=ep.content()
-    for pat in [r'https?[^"\'<> ]+\.(?:mp3|m4a|aac|m3u8|mpd)[^"\'<> ]*', r'https?[^"\'<> ]*heli\.err\.ee[^"\'<> ]*']:
-        vals=[]
-        for v in re.findall(pat,content,re.I):
-            v=v.replace("&amp;","&").replace("\\/","/")
+    urls=re.findall(r'https?[^"\'<> ]+',content,re.I)
+    vals=[]
+    for v in urls:
+        v=v.replace("&amp;","&").replace("\\/","/")
+        if any(x in v.lower() for x in [".mp3", ".m4a", ".aac", ".m3u8", ".mpd", "heli.err.ee", "download"]):
             if v not in vals: vals.append(v)
-        for v in vals[:30]: print("HTML_MEDIA",v)
+    for v in vals[:60]: print("HTML_MEDIA",v)
     browser.close()
