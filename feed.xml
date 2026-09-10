@@ -2,10 +2,10 @@
 <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Rahva oma kaitse — arhiiv 2005–2009</title>
-    <link>https://arhiiv.err.ee/audio/seeria/rahva-oma-kaitse?limit=500&sort=old</link>
+    <link>https://arhiiv.err.ee/audio/seeria/rahva-oma-kaitse?limit=500&amp;sort=old</link>
     <description>Isiklik mugavusvoog ERR arhiivis avalikult kuulatavatele Rahva oma kaitse saadetele aastatest 2005–2009. Audio striimitakse otse ERR serveritest.</description>
     <language>et</language>
-    <lastBuildDate>Thu, 10 Sep 2026 04:32:17 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 10 Sep 2026 04:34:18 +0000</lastBuildDate>
     <itunes:author>ERR</itunes:author>
     <itunes:explicit>false</itunes:explicit>
     <itunes:category text="Comedy" />
