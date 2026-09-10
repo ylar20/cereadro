@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from email.utils import format_datetime
 from pathlib import Path
 
-SERIES_URL = "https://arhiiv.err.ee/audio/seeria/rahva-oma-kaitse?limit=500&sort=old"
+SERIES_URL = "https://arhiiv.err.ee/audio/seeria/rahva-oma-kaitse"
 OUT = Path("feed.xml")
 
 cmd = [
@@ -51,7 +51,7 @@ for line in p.stdout.splitlines():
         "date": dt,
         "title": d.get("title") or d.get("episode") or "Rahva oma kaitse",
         "description": d.get("description") or "ERR arhiivi saade Rahva oma kaitse.",
-        "page": d.get("webpage_url") or d.get("original_url") or "https://arhiiv.err.ee/audio/seeria/rahva-oma-kaitse",
+        "page": d.get("webpage_url") or d.get("original_url") or SERIES_URL,
         "media": media_url,
         "ext": ext,
         "length": int(filesize or 0),
@@ -98,7 +98,7 @@ feed = f'''<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Rahva oma kaitse — ERR arhiiv 2005–2009</title>
-    <link>https://arhiiv.err.ee/audio/seeria/rahva-oma-kaitse</link>
+    <link>{SERIES_URL}</link>
     <description>Isiklik mugavusvoog ERR arhiivis avalikult kättesaadavatele Rahva oma kaitse saadetele aastatest 2005–2009. Audio jääb ERR serveritesse.</description>
     <language>et</language>
     <lastBuildDate>{now}</lastBuildDate>
