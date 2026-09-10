@@ -1,6 +1,10 @@
 name: Update ERR archive podcast feed
 
 on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - 'feed.xml'
   workflow_dispatch:
   schedule:
     - cron: '17 3 * * 1'
